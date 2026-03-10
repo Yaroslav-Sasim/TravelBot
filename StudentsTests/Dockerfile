@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM docker.io/library/dotnet:8.0
+FROM mcr.microsoft.com/dotnet/sdk:8.0
 WORKDIR /app
 
 # Копируем весь проект из папки StudentsTests
