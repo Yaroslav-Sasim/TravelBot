@@ -25,5 +25,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapGet("/", () => "StudentsTests API is running!");
 app.Urls.Add($"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT")}");
 app.Run();
