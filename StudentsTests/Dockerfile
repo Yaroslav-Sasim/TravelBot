@@ -2,15 +2,23 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-COPY *.csproj ./
+# Копируем весь проект из папки StudentsTests
+COPY StudentsTests/ ./StudentsTests/
+
+# Переходим в папку проекта
+WORKDIR /app/StudentsTests
+
+# Восстанавливаем зависимости
 RUN dotnet restore
 
-COPY . ./
+# Публикуем проект
 RUN dotnet publish -c Release -o /app/out
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
+
+# Копируем опубликованные файлы
 COPY --from=build /app/out .
 
 ENTRYPOINT ["dotnet", "StudentsTests.dll"]
