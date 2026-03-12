@@ -15,11 +15,24 @@ public class TelegramController : ControllerBase
     [HttpPost("webhook")]
     public async Task<IActionResult> Post([FromBody] Update update)
     {
-        if (update.Message?.Text != null)
+        if (update?.Message?.Text == null)
+            return Ok();
+
+        var chatId = update.Message.Chat.Id;
+        var text = update.Message.Text;
+
+        if (text == "/start")
         {
             await _telegramService.SendMessageAsync(
-                update.Message.Chat.Id,
-                $"Вы написали: {update.Message.Text}"
+                chatId,
+                "Добро пожаловать в систему тестирования 🎓\nВведите ваше имя:"
+            );
+        }
+        else
+        {
+            await _telegramService.SendMessageAsync(
+                chatId,
+                $"Вы написали: {text}"
             );
         }
 
