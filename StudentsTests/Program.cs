@@ -3,28 +3,38 @@ using StudentsTests.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ======================
+// SERVICES (ВСЁ ДО Build)
+// ======================
 
 builder.Services.AddControllers();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-var app = builder.Build();
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Services.AddSingleton<TelegramService>();
 
-// Configure the HTTP request pipeline.
+// ======================
+
+var app = builder.Build();
+
+// ======================
+// PORT для Render
+// ======================
+
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://0.0.0.0:{port}");
+
+// ======================
+
 if (app.Environment.IsDevelopment())
 {
-   
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/", () => "StudentsTests API is running!");
-app.Urls.Add($"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT")}");
+
 app.Run();
