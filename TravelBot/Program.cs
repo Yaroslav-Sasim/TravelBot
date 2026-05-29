@@ -5,9 +5,6 @@ using TravelBot.Bot;
 using TravelBot.Data;
 using TravelBot.Services;
 
-// Render не поддерживает IPv6 — нужен Pooler (шаг 4)
-AppContext.SetSwitch("System.Net.DisableIPv6", true);
-
 var builder = WebApplication.CreateBuilder(args);
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";

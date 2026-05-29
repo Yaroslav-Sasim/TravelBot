@@ -16,24 +16,20 @@ public static class DatabaseConnection
                 "или переменной SUPABASE_DB_PASSWORD / Supabase__Password.");
         }
 
-        var usePooler = configuration.GetValue("Supabase:UsePooler", false);
         var projectRef = configuration["Supabase:ProjectRef"] ?? "ztpllfixhmifirwadcrs";
         var database = configuration["Supabase:Database"] ?? "postgres";
+        var isRender = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RENDER"));
+        var usePooler = configuration.GetValue("Supabase:UsePooler", false) || isRender;
 
         if (usePooler)
         {
             var poolerHost = configuration["Supabase:PoolerHost"]
-                ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_HOST");
-
-            if (string.IsNullOrWhiteSpace(poolerHost))
-            {
-                throw new InvalidOperationException(
-                    "Шаг 4 (Render): укажите Supabase:PoolerHost или SUPABASE_POOLER_HOST.");
-            }
+                ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_HOST")
+                ?? "aws-0-eu-central-1.pooler.supabase.com";
 
             return Build(
                 host: poolerHost,
-                port: configuration["Supabase:PoolerPort"] ?? "6543",
+                port: configuration["Supabase:PoolerPort"] ?? "5432",
                 database: database,
                 username: configuration["Supabase:PoolerUsername"] ?? $"postgres.{projectRef}",
                 password: password);
