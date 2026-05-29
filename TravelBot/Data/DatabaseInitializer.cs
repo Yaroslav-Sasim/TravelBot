@@ -4,8 +4,14 @@ namespace TravelBot.Data;
 
 public static class DatabaseInitializer
 {
-    public static async Task ApplyMigrationsAndSeedAsync(IServiceProvider services, ILogger logger)
+    public static async Task ApplyMigrationsAndSeedAsync(
+        IServiceProvider services,
+        ILogger logger,
+        string connectionString)
     {
+        var host = DatabaseConnection.GetHostForLogging(connectionString);
+        logger.LogInformation("Connecting to database host: {Host}", host);
+
         const int maxAttempts = 5;
         Exception? lastError = null;
 
@@ -19,7 +25,7 @@ public static class DatabaseInitializer
                 await db.Database.MigrateAsync();
                 DbInitializer.Seed(db);
 
-                logger.LogInformation("Database migrated and seeded.");
+                logger.LogInformation("Database migrated and seeded successfully.");
                 return;
             }
             catch (Exception ex)
@@ -27,15 +33,19 @@ public static class DatabaseInitializer
                 lastError = ex;
                 logger.LogWarning(
                     ex,
-                    "Database init attempt {Attempt}/{MaxAttempts} failed.",
+                    "Database init attempt {Attempt}/{MaxAttempts} failed for host {Host}.",
                     attempt,
-                    maxAttempts);
+                    maxAttempts,
+                    host);
 
                 if (attempt < maxAttempts)
                     await Task.Delay(TimeSpan.FromSeconds(3 * attempt));
             }
         }
 
-        throw new InvalidOperationException("Failed to initialize database after multiple attempts.", lastError);
+        throw new InvalidOperationException(
+            $"Failed to connect to database host '{host}'. " +
+            "На Render: привяжите PostgreSQL к Web Service (переменная DATABASE_URL).",
+            lastError);
     }
 }

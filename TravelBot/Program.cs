@@ -27,7 +27,8 @@ builder.Services.AddScoped<TelegramBotHandler>();
 
 var app = builder.Build();
 
-await DatabaseInitializer.ApplyMigrationsAndSeedAsync(app.Services, app.Logger);
+var connectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
+await DatabaseInitializer.ApplyMigrationsAndSeedAsync(app.Services, app.Logger, connectionString);
 
 app.MapPost("/api/telegram/webhook", async (Update update, TelegramBotHandler handler) =>
 {
