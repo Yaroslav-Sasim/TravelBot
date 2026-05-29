@@ -44,8 +44,7 @@ public static class DatabaseInitializer
         }
 
         throw new InvalidOperationException(
-            $"Failed to connect to database host '{host}'. " +
-            "На Render: привяжите PostgreSQL к Web Service (переменная DATABASE_URL).",
+            $"Failed to connect to database host '{host}'. Проверьте пароль и PoolerHost (для Render).",
             lastError);
     }
 }

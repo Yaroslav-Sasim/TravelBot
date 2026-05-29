@@ -4,5 +4,3 @@ obj/
 *.user
 *.suo
 *.vscode/
-appsettings.Development.json
-appsettings.Local.json

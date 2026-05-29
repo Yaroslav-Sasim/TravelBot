@@ -5,6 +5,9 @@ using TravelBot.Bot;
 using TravelBot.Data;
 using TravelBot.Services;
 
+// Render не поддерживает IPv6 — нужен Pooler (шаг 4)
+AppContext.SetSwitch("System.Net.DisableIPv6", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
@@ -12,7 +15,7 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var token = builder.Configuration["Telegram:BotToken"];
 if (string.IsNullOrWhiteSpace(token))
-    throw new InvalidOperationException("Укажите Telegram:BotToken или переменную Telegram__BotToken.");
+    throw new InvalidOperationException("Укажите Telegram:BotToken или Telegram__BotToken.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(DatabaseConnection.GetConnectionString(builder.Configuration)));
@@ -27,9 +30,6 @@ builder.Services.AddScoped<TelegramBotHandler>();
 
 var app = builder.Build();
 
-var connectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
-await DatabaseInitializer.ApplyMigrationsAndSeedAsync(app.Services, app.Logger, connectionString);
-
 app.MapPost("/api/telegram/webhook", async (Update update, TelegramBotHandler handler) =>
 {
     await handler.HandleUpdateAsync(update);
@@ -37,6 +37,33 @@ app.MapPost("/api/telegram/webhook", async (Update update, TelegramBotHandler ha
 });
 
 app.MapGet("/", () => "TravelBot is running");
+
+app.MapGet("/health/db", async (AppDbContext db) =>
+{
+    try
+    {
+        return await db.Database.CanConnectAsync()
+            ? Results.Ok("Database connected")
+            : Results.Problem("Database not connected");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
+});
+
+var connectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
+_ = Task.Run(async () =>
+{
+    try
+    {
+        await DatabaseInitializer.ApplyMigrationsAndSeedAsync(app.Services, app.Logger, connectionString);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Database initialization failed.");
+    }
+});
 
 var webhookBase = builder.Configuration["Telegram:WebhookUrl"]
     ?? Environment.GetEnvironmentVariable("RENDER_EXTERNAL_URL");

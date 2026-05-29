@@ -6,21 +6,47 @@ public static class DatabaseConnection
 {
     public static string GetConnectionString(IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
-        if (!string.IsNullOrWhiteSpace(connectionString))
-            return connectionString;
+        var password = configuration["Supabase:Password"]
+            ?? Environment.GetEnvironmentVariable("SUPABASE_DB_PASSWORD");
 
-        var supabaseConnection = BuildSupabaseConnectionString(configuration);
-        if (!string.IsNullOrWhiteSpace(supabaseConnection))
-            return supabaseConnection;
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new InvalidOperationException(
+                "Укажите пароль Supabase в appsettings.json " +
+                "или переменной SUPABASE_DB_PASSWORD / Supabase__Password.");
+        }
 
-        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-        if (!string.IsNullOrWhiteSpace(databaseUrl))
-            return NormalizePostgresUrl(databaseUrl);
+        var usePooler = configuration.GetValue("Supabase:UsePooler", false);
+        var projectRef = configuration["Supabase:ProjectRef"] ?? "ztpllfixhmifirwadcrs";
+        var database = configuration["Supabase:Database"] ?? "postgres";
 
-        throw new InvalidOperationException(
-            "Строка подключения не настроена. Укажите Supabase:Password / SUPABASE_DB_PASSWORD " +
-            "или ConnectionStrings__DefaultConnection.");
+        if (usePooler)
+        {
+            var poolerHost = configuration["Supabase:PoolerHost"]
+                ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_HOST");
+
+            if (string.IsNullOrWhiteSpace(poolerHost))
+            {
+                throw new InvalidOperationException(
+                    "Шаг 4 (Render): укажите Supabase:PoolerHost или SUPABASE_POOLER_HOST.");
+            }
+
+            return Build(
+                host: poolerHost,
+                port: configuration["Supabase:PoolerPort"] ?? "6543",
+                database: database,
+                username: configuration["Supabase:PoolerUsername"] ?? $"postgres.{projectRef}",
+                password: password);
+        }
+
+        var host = configuration["Supabase:Host"] ?? $"db.{projectRef}.supabase.co";
+
+        return Build(
+            host: host,
+            port: configuration["Supabase:Port"] ?? "5432",
+            database: database,
+            username: configuration["Supabase:Username"] ?? "postgres",
+            password: password);
     }
 
     public static string GetHostForLogging(string connectionString)
@@ -36,37 +62,14 @@ public static class DatabaseConnection
         }
     }
 
-    private static string? BuildSupabaseConnectionString(IConfiguration configuration)
-    {
-        var host = configuration["Supabase:Host"];
-        if (string.IsNullOrWhiteSpace(host))
-            return null;
-
-        var password = configuration["Supabase:Password"]
-            ?? Environment.GetEnvironmentVariable("SUPABASE_DB_PASSWORD");
-
-        if (string.IsNullOrWhiteSpace(password))
-            throw new InvalidOperationException(
-                "Укажите пароль Supabase: Supabase__Password или SUPABASE_DB_PASSWORD.");
-
-        var port = configuration["Supabase:Port"] ?? "5432";
-        var database = configuration["Supabase:Database"] ?? "postgres";
-        var username = configuration["Supabase:Username"] ?? "postgres";
-
-        return
-            $"Host={host};" +
-            $"Port={port};" +
-            $"Database={database};" +
-            $"Username={username};" +
-            $"Password={password};" +
-            "SSL Mode=Require;Trust Server Certificate=true";
-    }
-
-    private static string NormalizePostgresUrl(string databaseUrl)
-    {
-        if (databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
-            return "postgresql://" + databaseUrl["postgres://".Length..];
-
-        return databaseUrl;
-    }
+    private static string Build(string host, string port, string database, string username, string password) =>
+        new NpgsqlConnectionStringBuilder
+        {
+            Host = host,
+            Port = int.Parse(port),
+            Database = database,
+            Username = username,
+            Password = password,
+            SslMode = SslMode.Require
+        }.ConnectionString;
 }
