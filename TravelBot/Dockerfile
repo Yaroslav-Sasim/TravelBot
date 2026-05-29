@@ -2,7 +2,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-COPY TravelBot.csproj .
+# Копируем весь проект из папки StudentsTests
+COPY TravelBot/ ./TravelBot/
+
+# Переходим в папку проекта
+WORKDIR /app/StudentsTests
+
+# Восстанавливаем зависимости
 RUN dotnet restore
 
 COPY . .
