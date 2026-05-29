@@ -2,16 +2,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-# Копируем весь проект из папки StudentsTests
+
 COPY TravelBot/ ./TravelBot/
 
-# Переходим в папку проекта
-WORKDIR /app/StudentsTests
 
-# Восстанавливаем зависимости
-RUN dotnet restore
+WORKDIR /app/TravelBot
 
-COPY . .
+# Восстанавливаем зависимостиRUN dotnet restore
+
+
 RUN dotnet publish -c Release -o /app/out
 
 # Stage 2: Runtime
