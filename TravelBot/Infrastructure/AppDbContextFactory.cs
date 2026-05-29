@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-namespace StudentsTests.Infrastructure
+namespace TravelBot.Infrastructure
 {
     public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     {

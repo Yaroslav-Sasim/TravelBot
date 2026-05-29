@@ -1,6 +1,6 @@
-﻿using static System.Net.Mime.MediaTypeNames;
+using static System.Net.Mime.MediaTypeNames;
 
-namespace StudentsTests.Models
+namespace TravelBot.Models
 {
     public class Subject
     {

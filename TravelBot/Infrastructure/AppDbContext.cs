@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using StudentsTests.Models;
+using Microsoft.EntityFrameworkCore;
+using TravelBot.Models;
 
-namespace StudentsTests.Infrastructure
+namespace TravelBot.Infrastructure
 {
     public class AppDbContext:DbContext
     {

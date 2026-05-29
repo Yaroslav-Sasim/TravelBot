@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using StudentsTests.Infrastructure;
+using TravelBot.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +35,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/", () => "StudentsTests API is running!");
+app.MapGet("/", () => "TravelBot API is running!");
 
 app.Run();

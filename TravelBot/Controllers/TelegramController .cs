@@ -1,4 +1,4 @@
-п»їusing Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Telegram.Bot.Types;
 
 [ApiController]
@@ -25,14 +25,14 @@ public class TelegramController : ControllerBase
         {
             await _telegramService.SendMessageAsync(
                 chatId,
-                "Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ РІ СЃРёСЃС‚РµРјСѓ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ рџЋ“\nР’РІРµРґРёС‚Рµ РІР°С€Рµ РёРјСЏ:"
+                "Добро пожаловать в систему тестирования ??\nВведите ваше имя:"
             );
         }
         else
         {
             await _telegramService.SendMessageAsync(
                 chatId,
-                $"Р’С‹ РЅР°РїРёСЃР°Р»Рё: {text}"
+                $"Вы написали: {text}"
             );
         }
 

@@ -1,4 +1,4 @@
-﻿namespace StudentsTests.Models
+namespace TravelBot.Models
 {
     public class AnswerOption
     {

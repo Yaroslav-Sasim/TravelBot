@@ -21,4 +21,4 @@ WORKDIR /app
 # Копируем опубликованные файлы
 COPY --from=build /app/out .
 
-ENTRYPOINT ["dotnet", "StudentsTests.dll"]
+ENTRYPOINT ["dotnet", "TravelBot.dll"]
