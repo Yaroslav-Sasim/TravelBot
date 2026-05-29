@@ -7,8 +7,12 @@ using TravelBot.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var token = builder.Configuration["Telegram:BotToken"]
-    ?? throw new InvalidOperationException("Telegram:BotToken is not configured");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+var token = builder.Configuration["Telegram:BotToken"];
+if (string.IsNullOrWhiteSpace(token))
+    throw new InvalidOperationException("Укажите Telegram:BotToken или переменную Telegram__BotToken.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(DatabaseConnection.GetConnectionString(builder.Configuration)));
@@ -23,15 +27,7 @@ builder.Services.AddScoped<TelegramBotHandler>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    DbInitializer.Seed(db);
-}
-
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-app.Urls.Add($"http://0.0.0.0:{port}");
+await DatabaseInitializer.ApplyMigrationsAndSeedAsync(app.Services, app.Logger);
 
 app.MapPost("/api/telegram/webhook", async (Update update, TelegramBotHandler handler) =>
 {
@@ -46,10 +42,17 @@ var webhookBase = builder.Configuration["Telegram:WebhookUrl"]
 
 if (!string.IsNullOrWhiteSpace(webhookBase))
 {
-    var bot = app.Services.GetRequiredService<ITelegramBotClient>();
-    var webhookUrl = $"{webhookBase.TrimEnd('/')}/api/telegram/webhook";
-    await bot.SetWebhook(webhookUrl);
-    app.Logger.LogInformation("Webhook set to {WebhookUrl}", webhookUrl);
+    try
+    {
+        var bot = app.Services.GetRequiredService<ITelegramBotClient>();
+        var webhookUrl = $"{webhookBase.TrimEnd('/')}/api/telegram/webhook";
+        await bot.SetWebhook(webhookUrl);
+        app.Logger.LogInformation("Webhook set to {WebhookUrl}", webhookUrl);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Failed to set Telegram webhook");
+    }
 }
 
 app.Run();

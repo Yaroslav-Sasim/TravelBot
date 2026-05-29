@@ -13,20 +13,28 @@ public static class DatabaseConnection
             return ParseDatabaseUrl(databaseUrl);
 
         throw new InvalidOperationException(
-            "Строка подключения не настроена. Укажите ConnectionStrings:DefaultConnection или DATABASE_URL.");
+            "Строка подключения не настроена. Укажите ConnectionStrings__DefaultConnection или DATABASE_URL.");
     }
 
     private static string ParseDatabaseUrl(string databaseUrl)
     {
-        var uri = new Uri(databaseUrl);
-        var userInfo = uri.UserInfo.Split(':', 2);
+        if (databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+            || databaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            var uri = new Uri(databaseUrl);
+            var userInfo = uri.UserInfo.Split(':', 2);
+            var port = uri.Port > 0 ? uri.Port : 5432;
+            var database = uri.AbsolutePath.TrimStart('/');
 
-        return
-            $"Host={uri.Host};" +
-            $"Port={uri.Port};" +
-            $"Database={uri.AbsolutePath.TrimStart('/')};" +
-            $"Username={Uri.UnescapeDataString(userInfo[0])};" +
-            $"Password={Uri.UnescapeDataString(userInfo[1])};" +
-            "SSL Mode=Require;Trust Server Certificate=true";
+            return
+                $"Host={uri.Host};" +
+                $"Port={port};" +
+                $"Database={database};" +
+                $"Username={Uri.UnescapeDataString(userInfo[0])};" +
+                $"Password={Uri.UnescapeDataString(userInfo[1])};" +
+                "SSL Mode=Require;Trust Server Certificate=true";
+        }
+
+        return databaseUrl;
     }
 }
