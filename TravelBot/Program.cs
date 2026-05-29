@@ -1,40 +1,30 @@
-using Microsoft.EntityFrameworkCore;
-using TravelBot.Infrastructure;
+using Telegram.Bot;
+using Telegram.Bot.Types;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ======================
-// SERVICES (ВСЁ ДО Build)
-// ======================
+var token = builder.Configuration["Telegram:BotToken"]
+    ?? throw new InvalidOperationException("Telegram:BotToken is not configured");
 
-builder.Services.AddControllers();
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddSingleton<TelegramService>();
-
-// ======================
+var bot = new TelegramBotClient(token);
 
 var app = builder.Build();
-
-// ======================
-// PORT для Render
-// ======================
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
-// ======================
-
-if (app.Environment.IsDevelopment())
+app.MapPost("/api/telegram/webhook", async (Update update) =>
 {
-}
+    if (update.Message?.Text != "/start")
+        return Results.Ok();
 
-app.UseHttpsRedirection();
-app.UseAuthorization();
+    await bot.SendMessage(
+        chatId: update.Message.Chat.Id,
+        text: "Привет, готов путешествовать?");
 
-app.MapControllers();
-app.MapGet("/", () => "TravelBot API is running!");
+    return Results.Ok();
+});
+
+app.MapGet("/", () => "TravelBot is running");
 
 app.Run();
