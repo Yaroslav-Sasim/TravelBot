@@ -6,6 +6,11 @@ public static class DatabaseConnection
 {
     public static string GetConnectionString(IConfiguration configuration)
     {
+        var explicitConnection = configuration["Supabase:ConnectionString"];
+
+        if (!string.IsNullOrWhiteSpace(explicitConnection))
+            return NormalizeConnectionString(explicitConnection);
+
         var password = configuration["Supabase:Password"]
             ?? Environment.GetEnvironmentVariable("SUPABASE_DB_PASSWORD");
 
@@ -24,12 +29,21 @@ public static class DatabaseConnection
         if (usePooler)
         {
             var poolerHost = configuration["Supabase:PoolerHost"]
-                ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_HOST")
-                ?? "aws-0-eu-central-1.pooler.supabase.com";
+                ?? Environment.GetEnvironmentVariable("SUPABASE_POOLER_HOST");
+
+            if (string.IsNullOrWhiteSpace(poolerHost))
+            {
+                throw new InvalidOperationException(
+                    "На Render нужен Supabase Pooler (IPv4). " +
+                    "Скопируйте PoolerHost из Supabase → Project Settings → Database → Connection string " +
+                    "и задайте Supabase:PoolerHost или переменную Supabase__PoolerHost.");
+            }
+
+            var poolerPort = configuration["Supabase:PoolerPort"] ?? "5432";
 
             return Build(
                 host: poolerHost,
-                port: configuration["Supabase:PoolerPort"] ?? "5432",
+                port: poolerPort,
                 database: database,
                 username: configuration["Supabase:PoolerUsername"] ?? $"postgres.{projectRef}",
                 password: password);
@@ -50,12 +64,25 @@ public static class DatabaseConnection
         try
         {
             var builder = new NpgsqlConnectionStringBuilder(connectionString);
-            return string.IsNullOrWhiteSpace(builder.Host) ? "unknown" : builder.Host;
+            var user = string.IsNullOrWhiteSpace(builder.Username) ? "unknown" : builder.Username;
+            var host = string.IsNullOrWhiteSpace(builder.Host) ? "unknown" : builder.Host;
+            return $"{host}:{builder.Port} as {user}";
         }
         catch
         {
             return "unknown";
         }
+    }
+
+    private static string NormalizeConnectionString(string value)
+    {
+        if (value.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            return new NpgsqlConnectionStringBuilder(value) { SslMode = SslMode.Require }.ConnectionString;
+        }
+
+        return value;
     }
 
     private static string Build(string host, string port, string database, string username, string password) =>

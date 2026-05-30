@@ -19,8 +19,12 @@ if (string.IsNullOrWhiteSpace(token))
 
 var adminPassword = builder.Configuration["AdminPassword"] ?? "admin";
 
+var dbConnectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
+builder.Logging.AddConsole();
+Console.WriteLine($"Database: {DatabaseConnection.GetHostForLogging(dbConnectionString)}");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(DatabaseConnection.GetConnectionString(builder.Configuration)));
+    options.UseNpgsql(dbConnectionString));
 
 builder.Services.AddSingleton<ITelegramBotClient>(_ => new TelegramBotClient(token));
 builder.Services.AddSingleton<ConversationState>();
