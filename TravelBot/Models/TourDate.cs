@@ -1,7 +1,16 @@
-namespace TravelBot.Models;
+﻿namespace TravelBot.Models;
 
-public sealed class TourDate
+public class TourDate
 {
-    public DateOnly Date { get; init; }
-    public int AvailableSeats { get; init; }
+    public int Id { get; set; }
+    public int TourId { get; set; }
+    public DateTime Date { get; set; }
+    public int PlacesTotal { get; set; }
+    public int PlacesBooked { get; set; }
+
+    public int PlacesLeft => PlacesTotal - PlacesBooked;
+
+    public Tour Tour { get; set; } = null!;
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }
+

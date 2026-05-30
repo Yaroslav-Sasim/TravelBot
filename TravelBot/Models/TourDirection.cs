@@ -1,11 +1,11 @@
-namespace TravelBot.Models;
+﻿namespace TravelBot.Models;
 
-public enum TourDirection
+public class TourDirection
 {
-    Nearest,
-    Moscow,
-    SaintPetersburg,
-    Karelia,
-    Caucasus,
-    Georgia
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+
+    public ICollection<Tour> Tours { get; set; } = new List<Tour>();
 }
+

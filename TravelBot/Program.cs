@@ -10,26 +10,45 @@ var builder = WebApplication.CreateBuilder(args);
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-var token = builder.Configuration["Telegram:BotToken"];
+var token = builder.Configuration["Telegram:BotToken"]
+    ?? builder.Configuration["BotToken"]
+    ?? Environment.GetEnvironmentVariable("BOT_TOKEN");
+
 if (string.IsNullOrWhiteSpace(token))
-    throw new InvalidOperationException("Укажите Telegram:BotToken или Telegram__BotToken.");
+    throw new InvalidOperationException("Укажите Telegram:BotToken или BotToken.");
+
+var adminPassword = builder.Configuration["AdminPassword"] ?? "admin";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(DatabaseConnection.GetConnectionString(builder.Configuration)));
 
 builder.Services.AddSingleton<ITelegramBotClient>(_ => new TelegramBotClient(token));
-builder.Services.AddScoped<TourRepository>();
-builder.Services.AddScoped<BookingRepository>();
-builder.Services.AddSingleton<KeyboardBuilder>();
-builder.Services.AddSingleton<AgencyService>();
-builder.Services.AddSingleton<UserSessionStore>();
-builder.Services.AddScoped<TelegramBotHandler>();
+builder.Services.AddSingleton<ConversationState>();
+builder.Services.AddSingleton(sp => new ImageStorage(builder.Environment.ContentRootPath));
+builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<BotApp>(sp => new BotApp(
+    sp.GetRequiredService<ITelegramBotClient>(),
+    sp.GetRequiredService<AppDbContext>(),
+    sp.GetRequiredService<ImageStorage>(),
+    sp.GetRequiredService<AdminService>(),
+    sp.GetRequiredService<ConversationState>(),
+    adminPassword));
 
 var app = builder.Build();
 
-app.MapPost("/api/telegram/webhook", async (Update update, TelegramBotHandler handler) =>
+using (var scope = app.Services.CreateScope())
 {
-    await handler.HandleUpdateAsync(update);
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+    await DbInitializer.SeedAsync(db);
+
+    var adminService = scope.ServiceProvider.GetRequiredService<AdminService>();
+    await adminService.EnsureAdminExistsAsync(adminPassword);
+}
+
+app.MapPost("/api/telegram/webhook", async (Update update, BotApp botApp) =>
+{
+    await botApp.HandleUpdateAsync(update, CancellationToken.None);
     return Results.Ok();
 });
 
@@ -46,19 +65,6 @@ app.MapGet("/health/db", async (AppDbContext db) =>
     catch (Exception ex)
     {
         return Results.Problem(ex.Message);
-    }
-});
-
-var connectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
-_ = Task.Run(async () =>
-{
-    try
-    {
-        await DatabaseInitializer.ApplyMigrationsAndSeedAsync(app.Services, app.Logger, connectionString);
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Database initialization failed.");
     }
 });
 
